@@ -1,8 +1,3 @@
-'use strict'
-
-// used by apply() and isApplicationOf()
-;
-
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
     define(['exports'], factory);
@@ -16,20 +11,49 @@
     global.mixwith = mod.exports;
   }
 })(this, function (exports) {
+  'use strict';
+
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-  const _appliedMixin = '__mixwith_appliedMixin';
 
-  const apply = exports.apply = (superclass, mixin) => {
-    let application = mixin(superclass);
+  function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  var _createClass = function () {
+    function defineProperties(target, props) {
+      for (var i = 0; i < props.length; i++) {
+        var descriptor = props[i];
+        descriptor.enumerable = descriptor.enumerable || false;
+        descriptor.configurable = true;
+        if ("value" in descriptor) descriptor.writable = true;
+        Object.defineProperty(target, descriptor.key, descriptor);
+      }
+    }
+
+    return function (Constructor, protoProps, staticProps) {
+      if (protoProps) defineProperties(Constructor.prototype, protoProps);
+      if (staticProps) defineProperties(Constructor, staticProps);
+      return Constructor;
+    };
+  }();
+
+  var _appliedMixin = '__mixwith_appliedMixin';
+
+  var apply = exports.apply = function apply(superclass, mixin) {
+    var application = mixin(superclass);
     application.prototype[_appliedMixin] = unwrap(mixin);
     return application;
   };
 
-  const isApplicationOf = exports.isApplicationOf = (proto, mixin) => proto.hasOwnProperty(_appliedMixin) && proto[_appliedMixin] === unwrap(mixin);
+  var isApplicationOf = exports.isApplicationOf = function isApplicationOf(proto, mixin) {
+    return proto.hasOwnProperty(_appliedMixin) && proto[_appliedMixin] === unwrap(mixin);
+  };
 
-  const hasMixin = exports.hasMixin = (o, mixin) => {
+  var hasMixin = exports.hasMixin = function hasMixin(o, mixin) {
     while (o != null) {
       if (isApplicationOf(o, mixin)) return true;
       o = Object.getPrototypeOf(o);
@@ -37,9 +61,9 @@
     return false;
   };
 
-  const _wrappedMixin = '__mixwith_wrappedMixin';
+  var _wrappedMixin = '__mixwith_wrappedMixin';
 
-  const wrap = exports.wrap = (mixin, wrapper) => {
+  var wrap = exports.wrap = function wrap(mixin, wrapper) {
     Object.setPrototypeOf(wrapper, mixin);
     if (!mixin[_wrappedMixin]) {
       mixin[_wrappedMixin] = mixin;
@@ -47,36 +71,39 @@
     return wrapper;
   };
 
-  const unwrap = exports.unwrap = wrapper => wrapper[_wrappedMixin] || wrapper;
+  var unwrap = exports.unwrap = function unwrap(wrapper) {
+    return wrapper[_wrappedMixin] || wrapper;
+  };
 
-  const _cachedApplications = '__mixwith_cachedApplications';
+  var _cachedApplications = '__mixwith_cachedApplications';
 
-  const Cached = exports.Cached = mixin => wrap(mixin, superclass => {
-    // Get or create a symbol used to look up a previous application of mixin
-    // to the class. This symbol is unique per mixin definition, so a class will have N
-    // applicationRefs if it has had N mixins applied to it. A mixin will have
-    // exactly one _cachedApplicationRef used to store its applications.
+  var Cached = exports.Cached = function Cached(mixin) {
+    return wrap(mixin, function (superclass) {
+      var cachedApplications = superclass[_cachedApplications];
+      if (!cachedApplications) {
+        cachedApplications = superclass[_cachedApplications] = new Map();
+      }
 
-    let cachedApplications = superclass[_cachedApplications];
-    if (!cachedApplications) {
-      cachedApplications = superclass[_cachedApplications] = new Map();
-    }
+      var application = cachedApplications.get(mixin);
+      if (!application) {
+        application = mixin(superclass);
+        cachedApplications.set(mixin, application);
+      }
 
-    let application = cachedApplications.get(mixin);
-    if (!application) {
-      application = mixin(superclass);
-      cachedApplications.set(mixin, application);
-    }
+      return application;
+    });
+  };
 
-    return application;
-  });
+  var DeDupe = exports.DeDupe = function DeDupe(mixin) {
+    return wrap(mixin, function (superclass) {
+      return hasMixin(superclass.prototype, mixin) ? superclass : mixin(superclass);
+    });
+  };
 
-  const DeDupe = exports.DeDupe = mixin => wrap(mixin, superclass => hasMixin(superclass.prototype, mixin) ? superclass : mixin(superclass));
-
-  const HasInstance = exports.HasInstance = mixin => {
+  var HasInstance = exports.HasInstance = function HasInstance(mixin) {
     if (Symbol && Symbol.hasInstance && !mixin[Symbol.hasInstance]) {
       Object.defineProperty(mixin, Symbol.hasInstance, {
-        value(o) {
+        value: function value(o) {
           return hasMixin(o, mixin);
         }
       });
@@ -84,20 +111,46 @@
     return mixin;
   };
 
-  const BareMixin = exports.BareMixin = mixin => wrap(mixin, s => apply(s, mixin));
+  var BareMixin = exports.BareMixin = function BareMixin(mixin) {
+    return wrap(mixin, function (s) {
+      return apply(s, mixin);
+    });
+  };
 
-  const Mixin = exports.Mixin = mixin => DeDupe(Cached(BareMixin(mixin)));
+  var Mixin = exports.Mixin = function Mixin(mixin) {
+    return DeDupe(Cached(BareMixin(mixin)));
+  };
 
-  const mix = exports.mix = superclass => new MixinBuilder(superclass);
+  var mix = exports.mix = function mix(superclass) {
+    return new MixinBuilder(superclass);
+  };
 
-  class MixinBuilder {
-    constructor(superclass) {
-      this.superclass = superclass || class {};
+  var MixinBuilder = function () {
+    function MixinBuilder(superclass) {
+      _classCallCheck(this, MixinBuilder);
+
+      this.superclass = superclass || function () {
+        function _class() {
+          _classCallCheck(this, _class);
+        }
+
+        return _class;
+      }();
     }
 
-    with(...mixins) {
-      return mixins.reduce((c, m) => m(c), this.superclass);
-    }
+    _createClass(MixinBuilder, [{
+      key: 'with',
+      value: function _with() {
+        for (var _len = arguments.length, mixins = Array(_len), _key = 0; _key < _len; _key++) {
+          mixins[_key] = arguments[_key];
+        }
 
-  }
+        return mixins.reduce(function (c, m) {
+          return m(c);
+        }, this.superclass);
+      }
+    }]);
+
+    return MixinBuilder;
+  }();
 });

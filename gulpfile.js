@@ -10,7 +10,8 @@ gulp.task('default', ['src', 'test']);
 gulp.task('src', () =>
     gulp.src('src/mixwith.js')
         .pipe(babel({
-          'plugins': [ 'transform-es2015-modules-umd' ],
+          'plugins': ['transform-es2015-modules-umd'],
+          'presets': ['es2015'],
           'only': [
             'src/*.js',
             'test/*.js',
